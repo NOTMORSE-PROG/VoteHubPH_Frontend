@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const { email, otp, password, name } = await req.json()
 
-    if (\!email || \!otp || \!password) {
+    if (!email || !otp || !password) {
       return NextResponse.json(
         { error: 'Email, OTP, and password are required' },
         { status: 400 }
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     const storedOTP = otpStore.get(email)
 
-    if (\!storedOTP) {
+    if (!storedOTP) {
       return NextResponse.json(
         { error: 'OTP not found or expired' },
         { status: 400 }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (storedOTP.code \!== otp) {
+    if (storedOTP.code !== otp) {
       return NextResponse.json(
         { error: 'Invalid OTP' },
         { status: 400 }
