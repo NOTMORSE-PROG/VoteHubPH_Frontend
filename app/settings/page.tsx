@@ -293,13 +293,41 @@ export default function SettingsPage() {
     await signOut({ callbackUrl: "/login" })
   }
 
-  const handleDeleteAccount = () => {
-    // Clear all user data from localStorage
-    localStorage.clear()
-    // In a real app, you would also make an API call to delete the account from the backend
-    // For now, we'll just redirect to the home page
-    alert("Your account has been deleted. All data has been removed.")
-    router.push("/")
+  const handleDeleteAccount = async () => {
+    setIsSavingProfile(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+      const response = await authenticatedFetch(`${API_URL}/user/delete-account`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Failed to delete account")
+      }
+
+      // Clear all user data from localStorage
+      localStorage.clear()
+      
+      // Show success message
+      toast({
+        title: "Account Deleted",
+        description: "Your account and all associated data have been permanently deleted.",
+      })
+
+      // Sign out and redirect
+      await signOut({ callbackUrl: "/login" })
+    } catch (error: any) {
+      console.error("Error deleting account:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to delete account. Please try again.",
+      })
+      setShowDeleteConfirm(false)
+    } finally {
+      setIsSavingProfile(false)
+    }
   }
 
   if (!mounted) return null
@@ -529,21 +557,48 @@ export default function SettingsPage() {
               <CardTitle className="text-destructive"><T>Delete Account</T></CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm"><T>Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently removed.</T></p>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-destructive">
+                  <T>Warning: This action cannot be undone!</T>
+                </p>
+                <p className="text-sm">
+                  <T>Are you absolutely sure you want to delete your account? This will permanently delete:</T>
+                </p>
+                <ul className="text-sm list-disc list-inside space-y-1 text-muted-foreground ml-2">
+                  <li><T>All your candidate posts</T></li>
+                  <li><T>All your comments</T></li>
+                  <li><T>All your votes</T></li>
+                  <li><T>Your profile and account data</T></li>
+                </ul>
+                <p className="text-sm font-medium mt-3">
+                  <T>This action is permanent and cannot be reversed.</T>
+                </p>
+              </div>
               <div className="flex gap-3 justify-end">
                 <Button
                   variant="outline"
                   onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isSavingProfile}
                 >
                   <T>Cancel</T>
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={handleDeleteAccount}
+                  disabled={isSavingProfile}
                   className="gap-2"
                 >
-                  <Trash2 className="h-4 w-4" />
-                  <T>Confirm Delete</T>
+                  {isSavingProfile ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <T>Deleting...</T>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      <T>Yes, Delete My Account</T>
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
