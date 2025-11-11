@@ -163,9 +163,22 @@ export default function BrowsePage() {
       })
       if (response.ok) {
         const data = await response.json()
-        setPosts(data)
-        lastFetchRef.current = Date.now()
+        // Ensure data is an array before setting it
+        if (Array.isArray(data)) {
+          setPosts(data)
+          lastFetchRef.current = Date.now()
+        } else {
+          console.error("Invalid response format - expected array, got:", data)
+          setPosts([])
+        }
       } else {
+        // Try to parse error message for debugging
+        try {
+          const errorData = await response.json()
+          console.error("Failed to load posts:", errorData)
+        } catch (e) {
+          console.error("Failed to load posts: HTTP", response.status)
+        }
         setPosts([])
       }
     } catch (error) {
