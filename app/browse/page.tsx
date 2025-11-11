@@ -298,6 +298,10 @@ export default function BrowsePage() {
 
   // Memoize filtered posts to prevent infinite re-renders
   const filteredPosts = useMemo(() => {
+    // Ensure posts is always an array
+    if (!Array.isArray(posts)) {
+      return []
+    }
     return posts.filter((post) => {
       // Filter by government level
       if (governmentLevel === "national" && post.level !== "National") {
