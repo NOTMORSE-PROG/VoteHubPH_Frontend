@@ -21,6 +21,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      const callbackUrl = searchParams.get("callbackUrl") || "/browse"
+      router.push(callbackUrl)
+    }
+  }, [status, session, router, searchParams])
+
   // Pre-fill email from URL parameter (after OTP verification)
   useEffect(() => {
     const emailParam = searchParams.get("email")
