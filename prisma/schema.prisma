@@ -1,0 +1,456 @@
+// Prisma Schema for VoteHubPH
+// PostgreSQL Database via Neon
+// Organized for scalability and easy expansion
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTHENTICATION & USER MANAGEMENT
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?   // Nullable for SSO users
+  emailVerified DateTime? // For email verification
+  image         String?   // Profile image from SSO or upload
+
+  // OAuth/SSO fields
+  provider      String?   // "google", "facebook", "email"
+  providerId    String?   // ID from OAuth provider
+
+  // User preferences
+  language         String    @default("en") // "en" or "fil"
+  profileCompleted Boolean   @default(false) // True when user completes profile after SSO
+
+  // Metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  votes         Vote[]
+  comments      Comment[]
+
+  @@index([email])
+  @@index([provider, providerId])
+}
+
+// NextAuth Account model (for OAuth)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// NextAuth Session model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Email verification tokens
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// CANDIDATES & OFFICIALS
+// ============================================
+
+model Candidate {
+  id              String   @id @default(cuid())
+
+  // Basic Information
+  name            String
+  nickname        String?
+  imageUrl        String?  // Cloudinary URL
+  bio             String   @db.Text
+
+  // Position & Level
+  position        Position @relation(fields: [positionId], references: [id])
+  positionId      String
+  governmentLevel GovernmentLevel
+
+  // Location (hierarchical for easy filtering)
+  location        Location? @relation(fields: [locationId], references: [id])
+  locationId      String?
+  region          String?
+  city            String?
+  barangay        String?
+
+  // Political Information
+  party           Party?    @relation(fields: [partyId], references: [id])
+  partyId         String?
+  partyList       PartyList? @relation(fields: [partyListId], references: [id])
+  partyListId     String?
+
+  // Status & Campaign
+  status          CandidateStatus @default(RUNNING)
+  isIncumbent     Boolean  @default(false)
+  yearsInOffice   Int?
+
+  // Detailed Information (flexible JSON for easy expansion)
+  platform        Json     // Array of platform points
+  achievements    Json     // Array of achievements
+  contributions   Json     // Array of contributions
+  education       Json?    // Education history
+  workExperience  Json?    // Work experience
+  socialMedia     Json?    // Social media links
+
+  // Statistics
+  votes           Int      @default(0)
+  commentCount    Int      @default(0)
+  endorsements    Int      @default(0)
+
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+  isPublished     Boolean  @default(true)
+
+  // Relations
+  Vote            Vote[]
+  Comment         Comment[]
+  Endorsement     Endorsement[]
+
+  @@index([governmentLevel])
+  @@index([positionId])
+  @@index([locationId])
+  @@index([partyId])
+  @@index([partyListId])
+  @@index([status])
+  @@index([isPublished])
+}
+
+// ============================================
+// LOCATIONS (Hierarchical)
+// ============================================
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String
+  type        LocationType // REGION, PROVINCE, CITY, MUNICIPALITY, BARANGAY
+  code        String?  // PSGC code or custom code
+
+  // Hierarchy
+  parentId    String?
+  parent      Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children    Location[] @relation("LocationHierarchy")
+
+  // Additional data
+  population  Int?
+  metadata    Json?    // Extensible for future data
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  Candidate   Candidate[]
+
+  @@unique([type, code])
+  @@index([type])
+  @@index([parentId])
+}
+
+// ============================================
+// POSITIONS & GOVERNMENT STRUCTURE
+// ============================================
+
+model Position {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  governmentLevel GovernmentLevel
+  order           Int      // For sorting (President=1, VP=2, etc.)
+
+  // Metadata
+  responsibilities Json?
+  requirements     Json?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Candidate       Candidate[]
+
+  @@index([governmentLevel])
+  @@index([order])
+}
+
+// ============================================
+// POLITICAL PARTIES
+// ============================================
+
+model Party {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  acronym     String?
+  logoUrl     String?  // Cloudinary URL
+  description String?  @db.Text
+
+  // Information
+  founded     DateTime?
+  ideology    String?
+  website     String?
+
+  // Metadata
+  metadata    Json?    // Extensible
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Candidate   Candidate[]
+
+  @@index([name])
+}
+
+// ============================================
+// PARTY-LIST SYSTEM
+// ============================================
+
+model PartyList {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  acronym         String?
+  logoUrl         String?  // Cloudinary URL
+
+  // Information
+  description     String   @db.Text
+  sector          Sector
+  platform        Json     // Array of platform points
+
+  // Contact & Links
+  website         String?
+  email           String?
+  socialMedia     Json?
+
+  // Statistics
+  votes           Int      @default(0)
+  memberCount     Int      @default(0)
+
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  isActive        Boolean  @default(true)
+
+  // Relations
+  members         PartyListMember[]
+  Candidate       Candidate[]
+
+  @@index([sector])
+  @@index([isActive])
+}
+
+model PartyListMember {
+  id              String   @id @default(cuid())
+  name            String
+  position        String   // "Representative", "President", "Secretary"
+  imageUrl        String?  // Cloudinary URL
+  bio             String   @db.Text
+  order           Int      @default(0) // For ranking/ordering
+
+  // Relations
+  partyListId     String
+  partyList       PartyList @relation(fields: [partyListId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([partyListId])
+  @@index([order])
+}
+
+// ============================================
+// VOTING & ENGAGEMENT
+// ============================================
+
+model Vote {
+  id          String   @id @default(cuid())
+
+  // Voter
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Candidate
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  // Vote details
+  isAnonymous Boolean  @default(false)
+  voteType    VoteType @default(SUPPORT) // SUPPORT, AGAINST, NEUTRAL
+
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, candidateId])
+  @@index([candidateId])
+  @@index([voteType])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+
+  // Author
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Target
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  // Engagement
+  likes       Int      @default(0)
+  isAnonymous Boolean  @default(false)
+
+  // Moderation
+  isApproved  Boolean  @default(true)
+  isFlagged   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([candidateId])
+  @@index([userId])
+  @@index([isApproved])
+}
+
+model Endorsement {
+  id          String   @id @default(cuid())
+
+  // Endorser info
+  endorserName String
+  endorserTitle String?
+  endorserImage String?
+
+  // Target
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  statement   String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([candidateId])
+}
+
+// ============================================
+// ELECTIONS & EVENTS
+// ============================================
+
+model Election {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  type        ElectionType
+
+  // Dates
+  electionDate DateTime
+  registrationDeadline DateTime?
+
+  // Status
+  status      ElectionStatus @default(UPCOMING)
+
+  // Results
+  totalVotes  Int?
+  turnout     Float?
+  results     Json?    // Flexible for storing results
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([electionDate])
+  @@index([type])
+}
+
+// ============================================
+// ENUMS (for type safety and easy expansion)
+// ============================================
+
+enum GovernmentLevel {
+  NATIONAL
+  LOCAL
+  PARTYLIST
+}
+
+enum LocationType {
+  REGION
+  PROVINCE
+  CITY
+  MUNICIPALITY
+  BARANGAY
+}
+
+enum CandidateStatus {
+  RUNNING
+  ELECTED
+  WITHDRAWN
+  DISQUALIFIED
+}
+
+enum Sector {
+  YOUTH
+  WOMEN
+  LABOR
+  FARMERS
+  FISHERFOLK
+  URBAN_POOR
+  INDIGENOUS_PEOPLES
+  PERSONS_WITH_DISABILITIES
+  SENIOR_CITIZENS
+  OVERSEAS_WORKERS
+  PROFESSIONALS
+  VETERANS
+  OTHERS
+}
+
+enum VoteType {
+  SUPPORT
+  AGAINST
+  NEUTRAL
+}
+
+enum ElectionType {
+  NATIONAL
+  LOCAL
+  BARANGAY
+  SPECIAL
+}
+
+enum ElectionStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
