@@ -200,7 +200,7 @@ export default function BrowsePage() {
     }
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/partylists`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/partylists`, {
         credentials: "include",
         cache: 'no-store',
       })

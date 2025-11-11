@@ -49,7 +49,7 @@ export default function PartyListDetailPage() {
       try {
         setIsLoading(true)
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/admin/partylists/${params.id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/partylists/${params.id}`,
           { credentials: "include" }
         )
         
