@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Search,
   Users,
@@ -545,21 +546,42 @@ export default function BrowsePage() {
 
             {(governmentLevel === "national" || governmentLevel === "partylist" || selectedLocation) && (
               <>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={
-                      governmentLevel === "partylist"
-                        ? "Search party-list groups by name, acronym, or sector..."
-                        : "Search candidates by name or platform..."
-                    }
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value)
-                      setCurrentPage(1)
-                    }}
-                    className="pl-10"
-                  />
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder={
+                        governmentLevel === "partylist"
+                          ? "Search party-list groups by name, acronym, or sector..."
+                          : "Search candidates by name or platform..."
+                      }
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value)
+                        setCurrentPage(1)
+                      }}
+                      className="pl-10"
+                    />
+                  </div>
+                  {governmentLevel === "national" && (
+                    <Select
+                      value={selectedPosition}
+                      onValueChange={(value) => {
+                        setSelectedPosition(value)
+                        setCurrentPage(1)
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="All Positions" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Positions</SelectItem>
+                        <SelectItem value="President">President</SelectItem>
+                        <SelectItem value="Vice President">Vice President</SelectItem>
+                        <SelectItem value="Senator">Senator</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-4">
