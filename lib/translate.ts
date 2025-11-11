@@ -59,6 +59,29 @@ export async function translateText(text: string, targetLang: string): Promise<s
     return text
   }
 
+  // Skip translation for form-related text patterns (labels, placeholders, etc.)
+  const formPatterns = [
+    /username or email/i,
+    /email address/i,
+    /password/i,
+    /enter your/i,
+    /select/i,
+    /choose/i,
+    /upload/i,
+    /click to/i,
+    /loading/i,
+    /required/i,
+    /optional/i,
+    /characters/i,
+    /max length/i,
+    /min length/i,
+  ]
+  
+  // Check if text matches any form pattern
+  if (formPatterns.some(pattern => pattern.test(text))) {
+    return text // Don't translate form labels/placeholders
+  }
+
   // 1. Check static dictionary first (instant, no API call)
   const staticTranslation = getStaticTranslation(text, targetLang)
   if (staticTranslation) {
