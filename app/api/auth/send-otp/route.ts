@@ -26,11 +26,11 @@ export async function POST(req: NextRequest) {
     otpStore.set(email, { code: otp, expiresAt })
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(f'
-=== OTP for {email} ===')
-      console.log(f'Code: {otp}')
-      console.log(f'========================
-')
+      console.log(`
+=== OTP for ${email} ===`)
+      console.log(`Code: ${otp}`)
+      console.log(`========================
+`)
     }
 
     return NextResponse.json({
