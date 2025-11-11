@@ -132,24 +132,6 @@ export default function PartyListDetailPage() {
             )}
           </div>
 
-          {partyList.platform && partyList.platform.length > 0 && (
-            <Card>
-              <CardHeader className="pb-4">
-                <h2 className="text-2xl font-bold">Platform</h2>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ul className="space-y-2">
-                  {partyList.platform.map((item, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <span className="text-primary mt-1.5 flex-shrink-0 text-lg">•</span>
-                      <span className="text-base line-clamp-2 break-words">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
           <div className="space-y-4">
             <h2 className="text-3xl font-bold">Members</h2>
             {!partyList.members || partyList.members.length === 0 ? (
