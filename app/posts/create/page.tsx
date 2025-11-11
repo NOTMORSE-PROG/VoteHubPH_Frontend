@@ -199,7 +199,7 @@ export default function CreatePostPage() {
 
   const getPositionsByLevel = (selectedLevel: string) => {
     const positions: Record<string, string[]> = {
-      National: ["President", "Vice President", "Senator", "Party-List Representative"],
+      National: ["President", "Vice President", "Senator"],
       "Local (City/Municipality)": ["Mayor", "Vice Mayor", "City Councilor"],
       Barangay: ["Barangay Captain", "Barangay Kagawad", "SK Chairperson"],
     }

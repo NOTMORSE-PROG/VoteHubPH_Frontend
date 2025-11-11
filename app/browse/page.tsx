@@ -65,6 +65,7 @@ export default function BrowsePage() {
     return null
   })
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  const [selectedPosition, setSelectedPosition] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoadingUserLocation, setIsLoadingUserLocation] = useState(false)
@@ -347,10 +348,15 @@ export default function BrowsePage() {
     if (selectedStatus !== "all" && post.status !== selectedStatus) {
       return false
     }
+
+    // Filter by position (for national level)
+    if (governmentLevel === "national" && selectedPosition !== "all" && post.position !== selectedPosition) {
+      return false
+    }
       
     return true
   })
-  }, [posts, governmentLevel, selectedLocation, searchQuery, selectedStatus])
+  }, [posts, governmentLevel, selectedLocation, searchQuery, selectedStatus, selectedPosition])
 
   const filteredPartyLists = partyLists.filter((pl) => {
     if (searchQuery) {
